@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MPC &amp; MPS Problem Solver</title>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  :root{
+    --bg:#F7F6F2;
+    --navy:#1B3A4B;
+    --green:#4CAF82;
+    --amber:#E0913A;
+    --red:#C05050;
+    --done:#EAF4EE;
+    --line:#dcd9cf;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--navy);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:680px;margin:0 auto;padding:28px 18px 80px;}
+  h1{
+    font-family:Georgia,"Times New Roman",serif;
+    font-size:30px;
+    margin:0 0 4px;
+    letter-spacing:-0.3px;
+  }
+  .sub{color:#5d6b72;font-size:15px;margin:0 0 26px;}
+  .serif{font-family:Georgia,"Times New Roman",serif;}
+  .mono{font-family:"Courier New",ui-monospace,Menlo,monospace;}
+
+  textarea{
+    width:100%;
+    min-height:130px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px;
+    font-size:15px;
+    font-family:system-ui,sans-serif;
+    background:#fff;
+    color:var(--navy);
+    resize:vertical;
+  }
+  textarea:focus,input:focus{outline:2px solid var(--navy);outline-offset:1px;}
+  label.fieldlabel{display:block;font-weight:600;font-size:14px;margin:0 0 8px;}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px;}
+  .chip{
+    border:1px solid var(--line);
+    background:#fff;
+    border-radius:999px;
+    padding:7px 13px;
+    font-size:13px;
+    color:var(--navy);
+    cursor:pointer;
+    text-align:left;
+    max-width:100%;
+    transition:background .15s,border-color .15s;
+  }
+  .chip:hover{background:#fff;border-color:var(--navy);}
+  .chiphint{font-size:12px;color:#8a9197;margin:0 0 0 2px;}
+
+  button.primary{
+    background:var(--navy);
+    color:#fff;
+    border:none;
+    border-radius:9px;
+    padding:12px 20px;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+    margin-top:18px;
+  }
+  button.primary:hover{background:#143040;}
+  button.ghost{
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--navy);
+    border-radius:9px;
+    padding:10px 16px;
+    font-size:14px;
+    cursor:pointer;
+  }
+  button.ghost:hover{border-color:var(--navy);}
+
+  .problembox{
+    background:#efece4;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px 16px;
+    margin:0 0 22px;
+    font-size:15px;
+  }
+  .problembox .head{
+    display:flex;justify-content:space-between;align-items:center;
+    font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:#6c7780;cursor:pointer;
+  }
+  .problembox .body{margin-top:9px;}
+
+  .progress{font-size:13px;text-transform:uppercase;letter-spacing:.7px;color:#6c7780;font-weight:600;margin:0 0 14px;}
+  .pbar{height:6px;background:#e5e2d9;border-radius:99px;overflow:hidden;margin:6px 0 22px;}
+  .pbar > div{height:100%;background:var(--green);transition:width .35s ease;}
+
+  .donecard{
+    background:var(--done);
+    border:1px solid #cfe6d8;
+    border-left:4px solid var(--green);
+    border-radius:8px;
+    padding:11px 14px;
+    margin:0 0 10px;
+    animation:snap .32s cubic-bezier(.2,.8,.3,1.2);
+  }
+  .donecard.revealed{
+    background:#f7ecec;border-color:#e6c9c9;border-left-color:var(--red);
+  }
+  @keyframes snap{
+    0%{transform:translateY(-6px) scale(.97);opacity:0;}
+    100%{transform:translateY(0) scale(1);opacity:1;}
+  }
+  .donecard .row{display:flex;align-items:baseline;gap:8px;}
+  .donecard .tick{color:var(--green);font-weight:700;}
+  .donecard.revealed .tick{color:var(--red);}
+  .donecard .sym{font-family:Georgia,serif;font-weight:700;font-size:15px;}
+  .donecard .work{font-family:"Courier New",monospace;font-size:14px;color:#33454e;margin-top:3px;}
+
+  .activecard{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:18px 18px 20px;
+    margin:6px 0 0;
+    box-shadow:0 1px 0 rgba(0,0,0,.02);
+  }
+  .activecard .instr{font-family:Georgia,serif;font-size:18px;line-height:1.45;margin:0 0 6px;}
+  .activecard .why{font-size:13.5px;color:#5d6b72;font-style:italic;margin:0 0 16px;}
+  .inrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  input.num{
+    border:1px solid var(--line);
+    border-radius:9px;
+    padding:11px 13px;
+    font-size:17px;
+    font-family:"Courier New",monospace;
+    width:170px;
+    background:#fff;
+    color:var(--navy);
+  }
+  .check{
+    background:var(--navy);color:#fff;border:none;border-radius:9px;
+    padding:11px 18px;font-size:14px;font-weight:600;cursor:pointer;
+  }
+  .check:hover{background:#143040;}
+
+  .feedback{margin-top:15px;border-radius:9px;padding:12px 14px;font-size:14.5px;}
+  .feedback.correct{background:var(--done);border:1px solid #cfe6d8;color:#1f5b3f;}
+  .feedback.hint{background:#fbf1e2;border:1px solid #efd9bb;color:#8a5a1d;}
+  .feedback.reveal{background:#f7ecec;border:1px solid #e6c9c9;color:#8e3a3a;}
+  .feedback .work{font-family:"Courier New",monospace;margin-top:6px;font-size:14px;}
+  .feedback .lead{font-weight:600;}
+
+  .nextrow{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;}
+
+  .summary h2{font-family:Georgia,serif;font-size:22px;margin:4px 0 14px;}
+  .soln{
+    background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:0 0 20px;
+  }
+  .solnrow{display:flex;gap:10px;align-items:baseline;padding:12px 0;border-bottom:1px dashed var(--line);}
+  .solnrow:last-child{border-bottom:none;}
+  .solnrow .n{font-family:"Courier New",monospace;color:#9aa2a7;font-size:13px;min-width:20px;}
+  .solnrow .w{font-family:"Courier New",monospace;font-size:15px;}
+  .solnrow.answer .w{font-weight:700;}
+  .badge{display:inline-block;background:var(--green);color:#fff;font-size:11px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.5px;border-radius:5px;padding:2px 7px;margin-left:8px;}
+
+  .relbox{background:#efece4;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:0 0 22px;}
+  .relbox h3{font-family:Georgia,serif;font-size:16px;margin:0 0 10px;}
+  .relbox ul{margin:0;padding:0;list-style:none;}
+  .relbox li{font-family:"Courier New",monospace;font-size:14px;padding:5px 0;color:#33454e;}
+
+  .manual{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;margin:8px 0 0;}
+  .manual .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;margin:6px 0 4px;}
+  .manual .f label{display:block;font-size:13px;font-weight:600;margin-bottom:5px;}
+  .manual .f input{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-family:"Courier New",monospace;font-size:15px;}
+  .manual .targets{margin:16px 0 4px;}
+  .manual .targets span{font-size:13px;font-weight:600;display:block;margin-bottom:8px;}
+  .tchk{display:inline-flex;align-items:center;gap:6px;margin:0 14px 8px 0;font-size:14px;cursor:pointer;}
+  .err{color:var(--red);font-size:14px;margin-top:10px;}
+  @media (max-width:480px){
+    .manual .grid{grid-template-columns:1fr;}
+    input.num{width:100%;}
+    .inrow{flex-direction:column;align-items:stretch;}
+    .check{width:100%;}
+  }
+  .foot{margin-top:34px;color:#9aa2a7;font-size:12px;text-align:center;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const {useState, useRef, useEffect} = React;
+
+/* ------------------------------ helpers ------------------------------ */
+function round2(n){ return Math.round((n + Number.EPSILON) * 100) / 100; }
+function fmt(n){
+  const r = round2(n);
+  return String(parseFloat(r.toFixed(2)));
+}
+function parseNum(s){
+  if(s === null || s === undefined) return NaN;
+  const cleaned = String(s).replace(/[,$\s]/g,'');
+  if(cleaned === '' || !/^-?\d*\.?\d+$/.test(cleaned)) return NaN;
+  return parseFloat(cleaned);
+}
+
+const META = {
+  deltaY:{name:'change in income', sym:'ΔY', kind:'money',
+    concept:'The change in income is the difference between the new and old income levels.'},
+  deltaC:{name:'change in consumption', sym:'ΔC', kind:'money',
+    concept:'Consumption is the part of income that households spend.'},
+  deltaS:{name:'change in savings', sym:'ΔS', kind:'money',
+    concept:'Savings is the part of extra income that is not spent.'},
+  mpc:{name:'MPC', sym:'MPC', kind:'ratio',
+    concept:'The marginal propensity to consume is the share of each extra dollar of income that is spent.'},
+  mps:{name:'MPS', sym:'MPS', kind:'ratio',
+    concept:'The marginal propensity to save is the share of each extra dollar of income that is saved. MPC and MPS always add to 1.'},
+  multiplier:{name:'spending multiplier', sym:'Multiplier', kind:'num',
+    concept:'The multiplier shows how an initial injection leads to a larger final change in income, because one persons spending becomes another persons income, again and again.'},
+  deltaInjection:{name:'change in injection', sym:'ΔInjection', kind:'money',
+    concept:'An injection is new spending added to the economy, such as government spending or investment.'},
+  deltaGDP:{name:'change in GDP', sym:'ΔGDP', kind:'money',
+    concept:'The total change in GDP is the initial injection magnified by the multiplier.'},
+};
+
+const METHODS = {
+  mpc: [
+    {needs:['deltaY','deltaC'], label:'MPC = ΔC ÷ ΔY', compute:k=>k.deltaC/k.deltaY,
+      working:k=>`MPC = ΔC ÷ ΔY = ${fmt(k.deltaC)} ÷ ${fmt(k.deltaY)} = ${fmt(k.deltaC/k.deltaY)}`,
+      hints:k=>['Divide the change in consumption by the change in income.', `Work out ${fmt(k.deltaC)} ÷ ${fmt(k.deltaY)}.`]},
+    {needs:['mps'], label:'MPC = 1 − MPS', compute:k=>1-k.mps,
+      working:k=>`MPC = 1 − MPS = 1 − ${fmt(k.mps)} = ${fmt(1-k.mps)}`,
+      hints:k=>['MPC and MPS always add up to 1.', `Work out 1 − ${fmt(k.mps)}.`]},
+  ],
+  mps: [
+    {needs:['mpc'], label:'MPS = 1 − MPC', compute:k=>1-k.mpc,
+      working:k=>`MPS = 1 − MPC = 1 − ${fmt(k.mpc)} = ${fmt(1-k.mpc)}`,
+      hints:k=>['MPC and MPS always add up to 1.', `Work out 1 − ${fmt(k.mpc)}.`]},
+    {needs:['multiplier'], label:'MPS = 1 ÷ Multiplier', compute:k=>1/k.multiplier,
+      working:k=>`MPS = 1 ÷ Multiplier = 1 ÷ ${fmt(k.multiplier)} = ${fmt(1/k.multiplier)}`,
+      hints:k=>['The MPS is one divided by the multiplier.', `Work out 1 ÷ ${fmt(k.multiplier)}.`]},
+    {needs:['deltaY','deltaS'], label:'MPS = ΔS ÷ ΔY', compute:k=>k.deltaS/k.deltaY,
+      working:k=>`MPS = ΔS ÷ ΔY = ${fmt(k.deltaS)} ÷ ${fmt(k.deltaY)} = ${fmt(k.deltaS/k.deltaY)}`,
+      hints:k=>['Divide the change in savings by the change in income.', `Work out ${fmt(k.deltaS)} ÷ ${fmt(k.deltaY)}.`]},
+  ],
+  multiplier: [
+    {needs:['mps'], label:'Multiplier = 1 ÷ MPS', compute:k=>1/k.mps,
+      working:k=>`Multiplier = 1 ÷ MPS = 1 ÷ ${fmt(k.mps)} = ${fmt(1/k.mps)}`,
+      hints:k=>['The multiplier is one divided by the MPS.', `Work out 1 ÷ ${fmt(k.mps)}.`]},
+    {needs:['mpc'], label:'Multiplier = 1 ÷ (1 − MPC)', compute:k=>1/(1-k.mpc),
+      working:k=>`Multiplier = 1 ÷ (1 − MPC) = 1 ÷ (1 − ${fmt(k.mpc)}) = ${fmt(1/(1-k.mpc))}`,
+      hints:k=>['The multiplier is one divided by (1 − MPC).', `Work out 1 ÷ (1 − ${fmt(k.mpc)}).`]},
+  ],
+  deltaS: [
+    {needs:['deltaY','deltaC'], label:'ΔS = ΔY − ΔC', compute:k=>k.deltaY-k.deltaC,
+      working:k=>`ΔS = ΔY − ΔC = ${fmt(k.deltaY)} − ${fmt(k.deltaC)} = ${fmt(k.deltaY-k.deltaC)}`,
+      hints:k=>['Savings is the income that is not consumed.', `Work out ${fmt(k.deltaY)} − ${fmt(k.deltaC)}.`]},
+  ],
+  deltaGDP: [
+    {needs:['multiplier','deltaInjection'], label:'ΔGDP = Multiplier × ΔInjection', compute:k=>k.multiplier*k.deltaInjection,
+      working:k=>`ΔGDP = Multiplier × ΔInjection = ${fmt(k.multiplier)} × ${fmt(k.deltaInjection)} = ${fmt(k.multiplier*k.deltaInjection)}`,
+      hints:k=>['Multiply the multiplier by the size of the injection.', `Work out ${fmt(k.multiplier)} × ${fmt(k.deltaInjection)}.`]},
+  ],
+};
+
+const CANON = ['mpc','mps','multiplier','deltaGDP'];
+
+function canResolve(target, given, seen){
+  if(given[target] !== undefined) return true;
+  if(seen.has(target)) return false;
+  const s = new Set(seen); s.add(target);
+  return (METHODS[target]||[]).some(m => m.needs.every(n => canResolve(n, given, s)));
+}
+
+function buildSteps(given, targets){
+  const known = {};
+  const order = [];
+  function resolve(t, stack){
+    if(t in known) return true;
+    if(given[t] !== undefined){
+      known[t] = given[t].value;
+      order.push({key:t, method:null});
+      return true;
+    }
+    const next = new Set(stack); next.add(t);
+    const ms = METHODS[t] || [];
+    // prefer a method whose needs are all already known (least extra work)
+    let chosen = ms.find(m => m.needs.every(n => n in known));
+    // otherwise a method whose needs can be resolved without looping back to
+    // a quantity already on the active stack (avoids MPC <-> MPS cycles)
+    if(!chosen) chosen = ms.find(m => m.needs.every(n => canResolve(n, given, new Set(next))));
+    if(!chosen) return false;
+    for(const n of chosen.needs){ if(!resolve(n, next)) return false; }
+    known[t] = chosen.compute(known);
+    order.push({key:t, method:chosen});
+    return true;
+  }
+  for(const t of targets) resolve(t, new Set());
+  return {order, known};
+}
+
+/* ------------------------------ parsing ------------------------------ */
+function parseProblem(text){
+  const given = {};
+  const unitM = text.match(/\b(trillion|billion|million)\b/i);
+  const unit = unitM ? unitM[1].toLowerCase() : '';
+  const num = s => parseFloat(String(s).replace(/[,$\s]/g,''));
+  let m;
+
+  m = text.match(/income[\s\S]{0,45}?from\s*\$?\s*([\d.,]+)[^.]*?\bto\s*\$?\s*([\d.,]+)/i);
+  if(m){ const f=num(m[1]), t=num(m[2]); given.deltaY={value:t-f, from:f, to:t, source:'fromto'}; }
+  else {
+    m = text.match(/income[\s\S]{0,30}?(?:rises?|increases?|grows?|goes?\s*up|expands?)\s*by\s*\$?\s*([\d.,]+)/i);
+    if(m) given.deltaY={value:num(m[1]), source:'by'};
+  }
+
+  m = text.match(/consumption[\s\S]{0,45}?from\s*\$?\s*([\d.,]+)[^.]*?\bto\s*\$?\s*([\d.,]+)/i);
+  if(m){ const f=num(m[1]), t=num(m[2]); given.deltaC={value:t-f, from:f, to:t, source:'fromto'}; }
+  else {
+    m = text.match(/\$?\s*([\d.,]+)\s*(?:is\s+)?(?:spent|consumed)/i);
+    if(m) given.deltaC={value:num(m[1]), source:'spent'};
+    else {
+      m = text.match(/consumption[\s\S]{0,30}?(?:rises?|increases?)\s*by\s*\$?\s*([\d.,]+)/i);
+      if(m) given.deltaC={value:num(m[1]), source:'by'};
+    }
+  }
+
+  m = text.match(/sav(?:ings?|es?|ed)[\s\S]{0,30}?(?:by|of|is)\s*\$?\s*([\d.,]+)/i);
+  if(m) given.deltaS={value:num(m[1]), source:'by'};
+
+  m = text.match(/\bMPC\b[^.\d]{0,30}?(?:is|of|=|equals?|:)\s*\$?\s*(\d*\.?\d+)/i);
+  if(m) given.mpc={value:num(m[1]), source:'stated'};
+
+  m = text.match(/\bMPS\b[^.\d]{0,30}?(?:is|of|=|equals?|:)\s*\$?\s*(\d*\.?\d+)/i);
+  if(m) given.mps={value:num(m[1]), source:'stated'};
+
+  m = text.match(/multiplier[^.\d]{0,30}?(?:is|of|=|equals?|:)\s*\$?\s*(\d*\.?\d+)/i);
+  if(m) given.multiplier={value:num(m[1]), source:'stated'};
+
+  let inj = text.match(/spending\s+by\s*\$?\s*([\d.,]+)/i)
+    || text.match(/(?:invest(?:s|ment)?|injection)[\s\S]{0,25}?(?:of|by|is|rises?\s*by|increases?\s*by)\s*\$?\s*([\d.,]+)/i)
+    || text.match(/\binjection\s+of\s*\$?\s*([\d.,]+)/i);
+  if(inj) given.deltaInjection={value:num(inj[1]), source:'injection'};
+
+  const targets = [];
+  if(/\bMPC\b/i.test(text)) targets.push('mpc');
+  if(/\bMPS\b/i.test(text)) targets.push('mps');
+  if(/multiplier/i.test(text)) targets.push('multiplier');
+  if((/\bGDP\b|change in output|change in national income|total change/i.test(text)) && given.deltaInjection) targets.push('deltaGDP');
+
+  return {given, unit, targets};
+}
+
+/* --------------------------- step building --------------------------- */
+function buildSolution(text){
+  const {given, unit, targets} = parseProblem(text);
+  if(Object.keys(given).length === 0) return {ok:false, given:{}, unit, targets:[]};
+  return assemble(given, unit, targets);
+}
+
+function assemble(given, unit, targets){
+  const moneyFmt = v => '$' + fmt(v) + (unit ? ' ' + unit : '');
+  const dispOf = key => (META[key].kind === 'money' ? moneyFmt : fmt);
+
+  let tg = CANON.filter(t => targets.includes(t));
+  let {order, known} = buildSteps(given, tg);
+
+  if(order.length === 0){
+    tg = CANON.filter(t => canResolve(t, given, new Set()));
+    const r = buildSteps(given, tg);
+    order = r.order; known = r.known;
+  }
+  if(order.length === 0) return {ok:false, given, unit, targets:[]};
+
+  const targetSet = new Set(tg);
+  const steps = order.map(item => {
+    const key = item.key;
+    const meta = META[key];
+    const disp = dispOf(key);
+    if(item.method === null){
+      const info = given[key];
+      let instruction, working, hints;
+      if(info.from !== undefined){
+        const noun = key === 'deltaY' ? 'income' : 'consumption';
+        instruction = `Lets identify the ${meta.name} (${meta.sym}). The problem says ${noun} changes from ${moneyFmt(info.from)} to ${moneyFmt(info.to)}. What is the ${meta.name}? Enter the number.`;
+        working = `${meta.sym} = ${fmt(info.to)} − ${fmt(info.from)} = ${fmt(info.value)}`;
+        hints = ['The change is the new level minus the old level.', `Work out ${fmt(info.to)} − ${fmt(info.from)}.`];
+      } else if(meta.kind === 'money'){
+        instruction = `Lets identify the ${meta.name} (${meta.sym}). The problem states this amount directly. What is it? Enter the number.`;
+        working = `${meta.sym} = ${fmt(info.value)}`;
+        hints = ['The problem states this amount directly.', 'Read the figure straight from the problem.'];
+      } else {
+        instruction = `The problem gives the ${meta.name} directly. Read it from the problem and enter the ${meta.name}.`;
+        working = `${meta.sym} = ${fmt(info.value)}`;
+        hints = ['The problem states this value directly.', 'Read it straight from the problem text.'];
+      }
+      return {
+        key, type:'identify', name:meta.name, sym:meta.sym, kind:meta.kind, concept:meta.concept,
+        answer:info.value, instruction, hints, working,
+        correctExplain:`Thats right. ${meta.sym} = ${disp(info.value)}.`,
+        reveal:`The ${meta.name} is ${disp(info.value)}.  ${working}`,
+        isAnswer:targetSet.has(key),
+      };
+    } else {
+      const method = item.method;
+      const val = known[key];
+      return {
+        key, type:'calc', name:meta.name, sym:meta.sym, kind:meta.kind, concept:meta.concept,
+        answer:val, label:method.label,
+        instruction:`Now work out the ${meta.name} (${meta.sym}). Use ${method.label}. Using the values you have already found, what is it?`,
+        hints:method.hints(known), working:method.working(known),
+        correctExplain:`Exactly. ${method.working(known)}`,
+        reveal:method.working(known),
+        isAnswer:targetSet.has(key),
+      };
+    }
+  });
+
+  return {ok:true, steps, targets:tg, given, unit, known, dispOf};
+}
+
+/* ------------------------------ samples ------------------------------ */
+const SAMPLES = [
+  "National income increases from $400 billion to $500 billion. Consumption increases from $320 billion to $400 billion. Calculate the MPC, MPS, and the spending multiplier.",
+  "The MPC in an economy is 0.75. A government increases spending by $50 billion. What is the total change in GDP?",
+  "The spending multiplier in an economy is 4. What is the MPS? What is the MPC?",
+  "Household income rises by $200. Of this, $150 is spent on consumption. Calculate the MPC and MPS, then find the multiplier.",
+];
+
+const REL = [
+  'MPC + MPS = 1',
+  'MPC = ΔC ÷ ΔY',
+  'MPS = ΔS ÷ ΔY',
+  'Multiplier = 1 ÷ MPS = 1 ÷ (1 − MPC)',
+  'ΔGDP = Multiplier × ΔInjection',
+];
+
+/* ------------------------------ UI ------------------------------ */
+function Entry({onStart}){
+  const [text, setText] = useState('');
+  const [err, setErr] = useState('');
+
+  function start(t){
+    const value = (t !== undefined ? t : text).trim();
+    if(!value){ setErr('Please paste a problem or pick an example to begin.'); return; }
+    onStart(value);
+  }
+
+  return (
+    <div>
+      <label className="fieldlabel" htmlFor="prob">Paste your economics problem here</label>
+      <textarea id="prob" value={text}
+        onChange={e=>{ setText(e.target.value); setErr(''); }}
+        placeholder="For example: National income rises from $400 billion to $500 billion. Consumption rises from $320 billion to $400 billion. Calculate the MPC, MPS and the multiplier." />
+      <p className="chiphint">Or load an example:</p>
+      <div className="chips">
+        {SAMPLES.map((s,i)=>(
+          <button key={i} className="chip" onClick={()=>{ setText(s); setErr(''); }}>
+            {s.length > 92 ? s.slice(0,90) + '…' : s}
+          </button>
+        ))}
+      </div>
+      {err && <p className="err">{err}</p>}
+      <button className="primary" onClick={()=>start()}>Start solving</button>
+    </div>
+  );
+}
+
+function ManualEntry({onBuild, onCancel}){
+  const fields = [
+    {key:'deltaY', label:'Change in income (ΔY)'},
+    {key:'deltaC', label:'Change in consumption (ΔC)'},
+    {key:'deltaInjection', label:'Change in injection / new spending'},
+    {key:'mpc', label:'MPC (if stated)'},
+    {key:'mps', label:'MPS (if stated)'},
+    {key:'multiplier', label:'Multiplier (if stated)'},
+  ];
+  const [vals, setVals] = useState({});
+  const [solve, setSolve] = useState({mpc:true, mps:true, multiplier:true, deltaGDP:false});
+  const [unit, setUnit] = useState('billion');
+  const [err, setErr] = useState('');
+
+  function build(){
+    const given = {};
+    for(const f of fields){
+      const raw = vals[f.key];
+      if(raw !== undefined && String(raw).trim() !== ''){
+        const n = parseNum(raw);
+        if(isNaN(n)){ setErr(`Please enter a valid number for ${f.label}.`); return; }
+        const src = (f.key==='mpc'||f.key==='mps'||f.key==='multiplier') ? 'stated'
+                  : (f.key==='deltaInjection' ? 'injection' : 'by');
+        given[f.key] = {value:n, source:src};
+      }
+    }
+    if(Object.keys(given).length === 0){ setErr('Enter at least one value so we can build the steps.'); return; }
+    const targets = CANON.filter(t => solve[t]);
+    if(targets.length === 0){ setErr('Choose at least one quantity to solve for.'); return; }
+    const sol = assemble(given, unit, targets);
+    if(!sol.ok){ setErr('Those values are not enough to solve for what you chose. Try adding another value.'); return; }
+    onBuild(sol);
+  }
+
+  return (
+    <div className="manual">
+      <p className="instr serif" style={{fontSize:'18px',margin:'0 0 4px'}}>Lets enter the key values together</p>
+      <p className="why" style={{margin:'0 0 14px'}}>We could not read the numbers automatically, so fill in any values the problem gives you. Leave the rest blank.</p>
+      <div className="grid">
+        {fields.map(f=>(
+          <div className="f" key={f.key}>
+            <label>{f.label}</label>
+            <input inputMode="decimal" value={vals[f.key]||''}
+              onChange={e=>{ setVals({...vals,[f.key]:e.target.value}); setErr(''); }} />
+          </div>
+        ))}
+      </div>
+      <div className="targets">
+        <span>What should we solve for?</span>
+        {CANON.map(t=>(
+          <label className="tchk" key={t}>
+            <input type="checkbox" checked={!!solve[t]}
+              onChange={e=>setSolve({...solve,[t]:e.target.checked})} />
+            {META[t].name}
+          </label>
+        ))}
+      </div>
+      {err && <p className="err">{err}</p>}
+      <div className="nextrow">
+        <button className="check" onClick={build}>Build my steps</button>
+        <button className="ghost" onClick={onCancel}>Back</button>
+      </div>
+    </div>
+  );
+}
+
+function ProblemBox({text}){
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="problembox">
+      <div className="head" onClick={()=>setOpen(!open)}>
+        <span>The problem</span><span>{open ? 'hide −' : 'show +'}</span>
+      </div>
+      {open && <div className="body">{text}</div>}
+    </div>
+  );
+}
+
+function DoneCard({step, revealed}){
+  return (
+    <div className={'donecard' + (revealed ? ' revealed' : '')}>
+      <div className="row">
+        <span className="tick">{revealed ? '→' : '✓'}</span>
+        <span className="sym serif">{step.sym}</span>
+      </div>
+      <div className="work">{step.working}</div>
+    </div>
+  );
+}
+
+function Solving({problem, solution, onDone, onReset}){
+  const steps = solution.steps;
+  const [idx, setIdx] = useState(0);
+  const [locked, setLocked] = useState(steps.map(()=>null)); // null | {revealed:bool}
+  const [attempts, setAttempts] = useState(0);
+  const [input, setInput] = useState('');
+  const [fb, setFb] = useState(null); // {kind, lead, body, work}
+  const inputRef = useRef(null);
+
+  const step = steps[idx];
+  const current = step;
+  const isLocked = locked[idx] !== null;
+
+  useEffect(()=>{ if(inputRef.current && !isLocked) inputRef.current.focus(); }, [idx, isLocked]);
+
+  function check(){
+    const n = parseNum(input);
+    if(isNaN(n)){
+      setFb({kind:'hint', lead:'Lets use a number.', body:'Please type a number, for example 0.8 or 100.'});
+      return;
+    }
+    if(round2(n) === round2(step.answer)){
+      const nl = locked.slice(); nl[idx] = {revealed:false}; setLocked(nl);
+      setFb({kind:'correct', lead:'Correct.', body:step.correctExplain});
+    } else {
+      const a = attempts + 1;
+      setAttempts(a);
+      if(a >= 3){
+        const nl = locked.slice(); nl[idx] = {revealed:true}; setLocked(nl);
+        setFb({kind:'reveal', lead:'Lets look at this one together.', body:step.reveal});
+      } else {
+        const hint = step.hints[Math.min(a-1, step.hints.length-1)];
+        setFb({kind:'hint', lead:(a===1?'Not quite, try again.':'Still not right.'), body:hint});
+      }
+    }
+  }
+
+  function next(){
+    if(idx + 1 >= steps.length){ onDone(); return; }
+    setIdx(idx+1); setAttempts(0); setInput(''); setFb(null);
+  }
+
+  const pct = Math.round(((idx + (isLocked?1:0)) / steps.length) * 100);
+
+  return (
+    <div>
+      <ProblemBox text={problem} />
+      <div className="progress">Step {idx+1} of {steps.length}</div>
+      <div className="pbar"><div style={{width:pct + '%'}}></div></div>
+
+      {steps.map((s,i)=> locked[i] !== null
+        ? <DoneCard key={i} step={s} revealed={locked[i].revealed} />
+        : null)}
+
+      {!isLocked && (
+        <div className="activecard">
+          <p className="instr">{current.instruction}</p>
+          <p className="why">Why this step: {current.concept}</p>
+          <div className="inrow">
+            <input ref={inputRef} className="num" inputMode="decimal" value={input}
+              placeholder={current.kind==='money' ? 'e.g. 100' : 'e.g. 0.8'}
+              onChange={e=>setInput(e.target.value)}
+              onKeyDown={e=>{ if(e.key==='Enter') check(); }} />
+            <button className="check" onClick={check}>Check my answer</button>
+          </div>
+          {fb && (
+            <div className={'feedback ' + fb.kind}>
+              <span className="lead">{fb.lead}</span> {fb.kind==='reveal' ? '' : ' ' + fb.body}
+              {fb.kind==='reveal' && <div className="work">{fb.body}</div>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {isLocked && (
+        <div className="nextrow">
+          <button className="check" onClick={next}>
+            {idx + 1 >= steps.length ? 'See the full solution' : 'Next step'}
+          </button>
+        </div>
+      )}
+
+      <div className="nextrow">
+        <button className="ghost" onClick={onReset}>Start a different problem</button>
+      </div>
+    </div>
+  );
+}
+
+function Summary({problem, solution, onReset}){
+  return (
+    <div className="summary">
+      <ProblemBox text={problem} />
+      <h2 className="serif">The full worked solution</h2>
+      <div className="soln">
+        {solution.steps.map((s,i)=>(
+          <div className={'solnrow' + (s.isAnswer ? ' answer' : '')} key={i}>
+            <span className="n">{i+1}</span>
+            <span className="w">{s.working}{s.isAnswer && <span className="badge">answer</span>}</span>
+          </div>
+        ))}
+      </div>
+      <div className="relbox">
+        <h3>Key relationships to recognise</h3>
+        <ul>{REL.map((r,i)=><li key={i}>{r}</li>)}</ul>
+      </div>
+      <button className="primary" onClick={onReset}>Try another problem</button>
+    </div>
+  );
+}
+
+function App(){
+  const [screen, setScreen] = useState('entry'); // entry | manual | solving | summary
+  const [problem, setProblem] = useState('');
+  const [solution, setSolution] = useState(null);
+
+  function start(text){
+    setProblem(text);
+    const sol = buildSolution(text);
+    if(sol.ok){ setSolution(sol); setScreen('solving'); }
+    else { setScreen('manual'); }
+  }
+  function manualBuild(sol){ setSolution(sol); setScreen('solving'); }
+  function reset(){ setScreen('entry'); setProblem(''); setSolution(null); }
+
+  return (
+    <div className="wrap">
+      <h1 className="serif">MPC &amp; MPS Problem Solver</h1>
+      <p className="sub">A guided study card for working through Marginal Propensity to Consume and Save problems, one step at a time.</p>
+
+      {screen==='entry' && <Entry onStart={start} />}
+      {screen==='manual' && <ManualEntry onBuild={manualBuild} onCancel={reset} />}
+      {screen==='solving' && <Solving problem={problem} solution={solution} onDone={()=>setScreen('summary')} onReset={reset} />}
+      {screen==='summary' && <Summary problem={problem} solution={solution} onReset={reset} />}
+
+      <div className="foot">Built for HSC Economics revision. All working stays in your browser.</div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
